@@ -172,13 +172,33 @@ agent = initialize_agent(
 
 
 # 4. Use streamlit to create a web app
+
+
+
+
 def main():
-     st.set_page_config(page_title="AI research agent", page_icon=":bird:")
+    st.set_page_config(page_title="Fall Intern", page_icon=":bird:")
 
-     st.header("AI research agent :bird:")
-     query = st.text_input("Research goal")
+    st.header(":globe_with_meridians: Fall Intern")
+    st.subheader('Go deeper on topics and questions.')
+    query = st.text_input("Research goal")
 
-     if query:
+    # Sidebar
+    st.sidebar.title('About the app')
+    st.sidebar.markdown("""
+        Fall Intern is an experimental strategy agent that is your helpful researcher. Fall Intern will search public sources to return citations and summaries of findings to your topic and question.
+    """)
+
+    st.sidebar.markdown('#### Support the project')
+    st.sidebar.markdown("""
+        If you like this project and want to support it, please consider making a small donation.
+        Every contribution helps keep the project running. Thank you!
+    """)
+    donate_button = '[Donate](https://buy.stripe.com/3cs02ge1AbbQ3h67sA)'
+    st.sidebar.markdown(donate_button, unsafe_allow_html=True)
+
+
+    if query:
          st.write("Doing research for ", query)
 
          result = agent({"input": query})

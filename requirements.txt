@@ -1,0 +1,4 @@
+streamlit==0.90.0
+python-dotenv==0.19.0
+cachetools==4.2.4
+langchain==<version>  

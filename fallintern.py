@@ -18,20 +18,17 @@ import json
 from langchain.schema import SystemMessage
 from fastapi import FastAPI
 
-
-
 load_dotenv()
 browserless_api_key = os.getenv("BROWSERLESS_API_KEY")
 serper_api_key = os.getenv("SERPER_API_KEY")
-
 
 from langchain.chat_models import ChatOpenAI
 
 llm = ChatOpenAI()
 llm.predict("Hello, world!")
 
-# 1. Tool for search
 
+# 1. Tool for search
 
 def search(query):
     url = "https://google.serper.dev/search"
@@ -53,6 +50,7 @@ def search(query):
 
 
 # 2. Tool for scraping
+
 def scrape_website(objective: str, url: str):
     # scrape website, and also will summarize the content based on objective if the content is too large
     # objective is the original objective & task that user give to the agent, url is the url of the website to be scraped

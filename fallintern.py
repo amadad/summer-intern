@@ -31,20 +31,15 @@ llm = ChatOpenAI()
 
 def search(query):
     url = "https://google.serper.dev/search"
- 
     payload = json.dumps({
         "q": query
     })
-
     headers = {
         'X-API-KEY': serper_api_key,
         'Content-Type': 'application/json'
     }
-
     response = requests.request("POST", url, headers=headers, data=payload)
-
     print(response.text)
-
     return response.text
 
 
@@ -89,7 +84,7 @@ def scrape_website(objective: str, url: str):
 
 
 def summary(objective, content):
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k-0613")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
 
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500)

@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import streamlit as st
+import time
 from langchain import PromptTemplate
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
@@ -25,8 +26,6 @@ serper_api_key = os.getenv("SERPER_API_KEY")
 from langchain.chat_models import ChatOpenAI
 
 llm = ChatOpenAI()
-llm.predict("Hello, world!")
-
 
 # 1. Tool for search
 
@@ -204,11 +203,18 @@ def main():
 
 
     if query:
-         st.write("Doing research for ", query)
+        progress_text = "Operation in progress. Please wait."
+        my_bar = st.progress(0, text=progress_text)
 
-         result = agent({"input": query})
+        for percent_complete in range(100):
+            time.sleep(0.1)
+            my_bar.progress(percent_complete + 1, text=progress_text)
+        
+        st.write("Doing research for ", query)
 
-         st.info(result['output'])
+        result = agent({"input": query})
+
+        st.info(result['output'])
 
 
 if __name__ == '__main__':

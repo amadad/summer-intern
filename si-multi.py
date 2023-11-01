@@ -23,6 +23,8 @@ PROMPTS = [
     "industry outlook"
 ]
 cache = TTLCache(maxsize=100, ttl=3600)
+openai_response_cache = TTLCache(maxsize=100, ttl=3600)
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
@@ -70,7 +72,6 @@ async def fetch_response(prompt, serpapi_results, mode="analysis"):
     
     return await generate_response(generated_prompt)
 
-
 async def generate_response(generated_prompt):
     with ThreadPoolExecutor() as executor:
         loop = asyncio.get_event_loop()
@@ -84,6 +85,7 @@ async def generate_response(generated_prompt):
             max_tokens=150
         ))
     return response['choices'][0]['message']['content'].strip()
+
 
 def save_to_markdown(company, responses):
     if not os.path.exists("logs"):
@@ -102,9 +104,7 @@ async def analyze_and_refine_responses(responses: list) -> list:
     """
     Analyze and refine the given responses for redundancy and conciseness.
     """
-    refined_responses = []
-    
-    for response in responses:
+    async def refine_response(response):
         messages = [
             {"role": "system", "content": "You are an editor. Please refine the following content to remove redundancy and make it concise."},
             {"role": "user", "content": response}
@@ -118,9 +118,9 @@ async def analyze_and_refine_responses(responses: list) -> list:
                 max_tokens=150
             ))
         
-        refined_responses.append(edit_response['choices'][0]['message']['content'].strip())
-        
-    return refined_responses
+        return edit_response['choices'][0]['message']['content'].strip()
+
+    return await asyncio.gather(*(refine_response(response) for response in responses))
 
 
 async def handle_user_input():

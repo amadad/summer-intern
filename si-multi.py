@@ -1,4 +1,5 @@
 import os
+import time
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
@@ -10,23 +11,22 @@ from serpapi import GoogleSearch
 # Configuration and Constants
 load_dotenv()
 PROMPTS = [
-    "brand purpose",
-    "value proposition",
-    "company positioning",
-    "company key messages",
+    "unique selling proposition",
+    "competitive position",
+    "key messages",
     "target audience",
-    "customer reviews",
     "products or services",
-    "leadership team",
-    "company size",
+    "financial statements",
+    "industry rivals",
+    "social media",
     "strategic opportunities",
+    "recent news",
     "industry outlook"
 ]
 cache = TTLCache(maxsize=100, ttl=3600)
 openai_response_cache = TTLCache(maxsize=100, ttl=3600)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
 
 class SerpAPIWrapper:
     @cached(cache)
@@ -42,7 +42,6 @@ class SerpAPIWrapper:
         search = GoogleSearch(params)
         return search.get_dict()
 
-
 serpapi_wrapper = SerpAPIWrapper()
 
 def summarize_serpapi_results(results):
@@ -50,42 +49,55 @@ def summarize_serpapi_results(results):
     snippet_texts = [entry.get("snippet", "") for entry in snippets[:3]] 
     return " ".join(snippet_texts)
 
-
 def generate_prompt(role, question, serp_summary):
-    return "{role}: {question}\n\nSerpAPI Results: {serp_summary}".format(
-        role=role, question=question, serp_summary=serp_summary)
+    return f"{role}: {question}\n\nSerpAPI Results: {serp_summary}"
 
+previous_responses = []
 
-async def fetch_response(prompt, serpapi_results, mode="analysis"): 
+async def fetch_response(prompt, serpapi_results):
     role = "research agents"
-    question = "Based on the provided search results, can you tell me the {}?".format(prompt)
+    question = f"Based on the provided search results, can you tell me the {prompt}?"
     serp_summary = summarize_serpapi_results(serpapi_results)
     
     if not serp_summary:
-        return "No relevant information found in the search results for {}.".format(prompt)
+        return f"No relevant information found in the search results for {prompt}."
     
-    if mode == "analysis":
-        generated_prompt = generate_prompt(role, question, serp_summary)
-    else:
-        prompt_template = "{role}: {question}\n\nSerpAPI Results: {serp_summary}"
-        generated_prompt = prompt_template.format(role=role, question=question, serp_summary=serp_summary)
-    
+    generated_prompt = generate_prompt(role, question, serp_summary)
     return await generate_response(generated_prompt)
 
 async def generate_response(generated_prompt):
     with ThreadPoolExecutor() as executor:
         loop = asyncio.get_event_loop()
         messages = [
-            {"role": "system", "content": "You are a helpful assistant. Use the provided SerpAPI Results directly without adding additional comments about the nature of the search results or browsing limitations."},
+            {"role": "system", "content": "You are a helpful assistant. Use the provided Results directly without adding additional comments."},
             {"role": "user", "content": generated_prompt}
         ]
         response = await loop.run_in_executor(executor, lambda: openai.ChatCompletion.create(
-            model='gpt-3.5-turbo-16k',
+            model='gpt-4-1106-preview',
             messages=messages,
             max_tokens=150
         ))
     return response['choices'][0]['message']['content'].strip()
 
+
+async def analyze_and_refine_responses(responses: list) -> list:
+    async def refine_response(response):
+        messages = [
+            {"role": "system", "content": "You are an editor. Refine the content to be concise and clear, but ensure core information remains intact."},
+            {"role": "user", "content": response}
+        ]
+
+        with ThreadPoolExecutor() as executor:
+            loop = asyncio.get_event_loop()
+            edit_response = await loop.run_in_executor(executor, lambda: openai.ChatCompletion.create(
+                model='gpt-4-1106-preview',
+                messages=messages,
+                max_tokens=150
+            ))
+        
+        return edit_response['choices'][0]['message']['content'].strip()
+
+    return await asyncio.gather(*(refine_response(response) for response in responses))
 
 def save_to_markdown(company, responses):
     if not os.path.exists("logs"):
@@ -99,36 +111,14 @@ def save_to_markdown(company, responses):
             file.write(f"{response}\n\n")
     print(f"Saved output to {filename}")
 
-
-async def analyze_and_refine_responses(responses: list) -> list:
-    """
-    Analyze and refine the given responses for redundancy and conciseness.
-    """
-    async def refine_response(response):
-        messages = [
-            {"role": "system", "content": "You are an editor. Please refine the following content to remove redundancy and make it concise."},
-            {"role": "user", "content": response}
-        ]
-        
-        with ThreadPoolExecutor() as executor:
-            loop = asyncio.get_event_loop()
-            edit_response = await loop.run_in_executor(executor, lambda: openai.ChatCompletion.create(
-                model='gpt-3.5-turbo-16k',
-                messages=messages,
-                max_tokens=150
-            ))
-        
-        return edit_response['choices'][0]['message']['content'].strip()
-
-    return await asyncio.gather(*(refine_response(response) for response in responses))
-
-
 async def handle_user_input():
     company = input("What company would you like to learn about? ")
     if company:
         try:
+            start_time = time.time()
+
             serpapi_results = serpapi_wrapper.results(company)
-            tasks = [fetch_response(prompt, serpapi_results, mode="analysis") for prompt in PROMPTS]
+            tasks = [fetch_response(prompt, serpapi_results) for prompt in PROMPTS]  # Removed 'mode' argument
             responses = await asyncio.gather(*tasks)
             
             # Analyze and refine the responses
@@ -137,8 +127,15 @@ async def handle_user_input():
             for response in refined_responses:
                 print(response)
             save_to_markdown(company, refined_responses)
+
+            end_time = time.time()  # Record the end time
+            total_time = end_time - start_time  # Calculate the total time
+
+            print(f"Total time to generate markdown file: {total_time} seconds")
+
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred while fetching information for {company}: {str(e)}")
+
 
 
 

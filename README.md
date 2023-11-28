@@ -1,6 +1,6 @@
 # 📝 Summer Intern - Smart Research Assistant
 
-Summer Intern is an innovative strategy agent, designed to serve as a quick research assistant for its users. Easily query specific information about brands and companies, fetching insights about their purpose, positioning, products, key messages, and more. The application uses GPT-4 combined with the capabilities of SerpAPI for real-time web search, ensuring accurate and timely data retrieval. As users input their queries, the app thoughtfully constructs relevant prompts, systematically dissecting the queried brand or company to provide a comprehensive analysis. 
+Summer Intern is an business strategy agent, designed to serve as a quick research assistant for its users. Easily query specific information about brands and companies, fetching insights about their purpose, positioning, products, key messages, and more. The application uses GPT-4 combined with the capabilities of SerpAPI for real-time web search, ensuring accurate and timely data retrieval. As users input their queries, the app thoughtfully constructs relevant prompts, systematically dissecting the queried brand or company to provide a comprehensive analysis. 
 
 ## 📖 Table of Contents
 1. [Features](#features)
